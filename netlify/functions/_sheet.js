@@ -115,6 +115,13 @@ export function parse(blockRows, timelineRows, today = new Date()) {
 
   const logged = days.filter((d) => d.weight != null);
   const missed = days.filter((d, i) => i < due && d.weight == null).length;
+
+  // How many due days have passed since the most recent weigh-in. 0 means they
+  // logged on the latest day that has come around; `due` means nothing at all
+  // this week. This is what drives the "gone quiet" alerts.
+  let lastLogged = -1;
+  for (let i = 0; i < due; i++) if (days[i]?.weight != null) lastLogged = i;
+  const staleDays = lastLogged < 0 ? due : (due - 1) - lastLogged;
   // Prefer the sheet's own average so the app never disagrees with the sheet;
   // fall back to computing it when that cell is blank or errored.
   const currentAvg = sheetAvg != null
@@ -161,6 +168,8 @@ export function parse(blockRows, timelineRows, today = new Date()) {
     loggedDays: logged.length,
     dueDays: due,
     missedDays: missed,
+    staleDays,
+    lastLoggedDay: lastLogged >= 0 ? days[lastLogged].day : null,
     expectedDays: days.length || 7,
     cardioDone: days.filter((d) => d.cardio === true).length,
     weeks: weeks.slice(0, 26),

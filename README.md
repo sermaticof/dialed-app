@@ -15,7 +15,10 @@ visual language as the Ghost Setter console.
   week's average, and how many weigh-ins have actually been logged. Grouped by
   check-in day with today's group first, or sorted by biggest move / gaining /
   dropping / missed logs. Instant search by name.
-- **Today** — whoever checks in today, plus anyone with missing weigh-ins.
+- **Today** — a **Needs attention** panel first: who has gone quiet, who is
+  moving against their phase, who is changing faster than target, and which
+  sheets failed to read. Each alert names the clients, and tapping a name opens
+  them. Then whoever checks in today, and anyone else with missing weigh-ins.
 - **Prep** — everyone with a show date, counting down by weeks out.
 - **Client detail** — the week's daily chart with last week's average drawn as
   a reference line, compliance stats, the last coach note, a 16-week average
@@ -51,6 +54,31 @@ in Thursday and has logged Thu–Mon is 5/5, not 5/7.
 and bad in GROWTH, so the phase decides the colour. An unrecognised phase stays
 neutral instead of guessing, and the arrow and wording carry the meaning
 regardless of colour.
+
+**Rate is reported as %BW/week** — the number that actually decides whether to
+move calories — and judged against a target band for the phase:
+
+| Intent | Target |
+|---|---|
+| `down` (CUT, PREP, PRIMING, …) | −1.00 to −0.40 %BW/wk |
+| `up` (GROWTH, BUILD, REVERSE, …) | +0.10 to +0.50 %BW/wk |
+| `hold` (MAINTAIN, BRIDGE) | ±0.25 %BW/wk |
+
+Outside the band reads as *slower/faster than target*; the wrong direction
+entirely reads as *gaining in a cut* / *losing in a growth*.
+
+### Tuning the coaching logic
+
+Both of these live in one clearly marked `COACHING CONFIG` block at the top of
+the script in `index.html`:
+
+- `PHASE_INTENT` — what each phase is trying to do (`up`, `down`, `hold`).
+  **`PRIMING` is set to `down`**, inferred from the pattern in the sheets
+  (173 → 172 → 171 → 169 → 168 across priming weeks, then into GROWTH).
+  Change it there if that isn't the intent.
+- `RATE_BANDS` — the target %BW/week for each intent.
+
+A phase that appears in neither stays neutral rather than being guessed at.
 
 ## Setup
 

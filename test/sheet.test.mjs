@@ -89,6 +89,33 @@ test('counts only days that have come around yet', () => {
   assert.deepEqual(d.days.map((x) => x.due), [true, true, true, true, true, false, false]);
 });
 
+test('tracks how long since the last weigh-in', () => {
+  // Thu 200, Fri 201, Sat missed, Sun 199, Mon 198 -> logged on the latest due day.
+  const d = parse(BLOCK(), TIMELINE(), MONDAY);
+  assert.equal(d.staleDays, 0);
+  assert.equal(d.lastLoggedDay, 'Monday');
+});
+
+test('staleDays counts back to the most recent weigh-in', () => {
+  const block = BLOCK();
+  block[4][4] = ''; // F25 Sunday
+  block[5][4] = ''; // F26 Monday
+  const d = parse(block, TIMELINE(), MONDAY);
+  assert.equal(d.lastLoggedDay, 'Friday');
+  assert.equal(d.staleDays, 3); // Sat, Sun, Mon
+});
+
+test('staleDays equals the whole week when nothing is logged', () => {
+  const block = BLOCK();
+  for (let r = 1; r <= 7; r++) block[r][4] = '';
+  block[8][4] = '';
+  const d = parse(block, TIMELINE(), MONDAY);
+  assert.equal(d.lastLoggedDay, null);
+  assert.equal(d.staleDays, 5);
+  assert.equal(d.currentAvg, null);
+  assert.equal(d.delta, null);
+});
+
 test('counts cardio sessions marked done', () => {
   assert.equal(parse(BLOCK(), TIMELINE(), MONDAY).cardioDone, 3);
 });

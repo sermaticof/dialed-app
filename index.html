@@ -146,6 +146,31 @@
   .t-mute{color:var(--fg-3); background:var(--raised); border-color:var(--line-2)}
   .t-stop{color:var(--stop); background:var(--stop-dim); border-color:rgba(255,92,92,.3)}
 
+  /* rate badge + alerts */
+  .rate{margin-left:auto; font-family:var(--mono); font-size:10px; white-space:nowrap;
+        display:inline-flex; align-items:baseline; gap:5px; font-variant-numeric:tabular-nums}
+  .rate .lbl{font-family:var(--sans); font-size:10.5px; letter-spacing:-.01em; opacity:.85}
+  .r-ok{color:var(--ok)} .r-warn{color:var(--warn)} .r-stop{color:var(--stop)} .r-mute{color:var(--fg-3)}
+
+  .alerts{display:flex; flex-direction:column; gap:14px}
+  .alertrow{display:flex; gap:10px; align-items:flex-start; font-size:13px}
+  .alertrow b{font-variant-numeric:tabular-nums}
+  .alertdot{width:8px; height:8px; border-radius:50%; flex:none; margin-top:6px; display:block}
+  .a-ok{background:var(--ok); box-shadow:0 0 8px rgba(62,207,142,.5)}
+  .a-warn{background:var(--warn); box-shadow:0 0 8px rgba(245,166,35,.5)}
+  .a-stop{background:var(--stop); box-shadow:0 0 8px rgba(255,92,92,.5)}
+  .a-mute{background:var(--fg-3)}
+  .whochips{display:flex; flex-wrap:wrap; gap:5px; margin-top:7px}
+  .whochip{font-size:11.5px; padding:3px 9px; border-radius:999px; border:1px solid var(--line-2);
+           background:var(--raised); color:var(--fg-2); cursor:pointer; font-family:inherit}
+  .whochip:hover{color:var(--fg); border-color:var(--glass-line)}
+
+  .verdict{display:flex; gap:9px; align-items:flex-start; font-size:12.5px; line-height:1.5;
+           border:1px solid var(--line); border-radius:12px; padding:10px 13px; margin-bottom:10px;
+           background:var(--panel)}
+  .v-ok{border-color:rgba(62,207,142,.28)} .v-warn{border-color:rgba(245,166,35,.3)}
+  .v-stop{border-color:rgba(255,92,92,.32)} .v-mute{border-color:var(--line)}
+
   .dots{display:flex; gap:4px; align-items:center; margin-top:2px}
   .dots i{width:7px; height:7px; border-radius:50%; background:var(--line-2); display:block}
   .dots i.hit{background:var(--cool)}
@@ -336,20 +361,94 @@ function ago(ts) {
   return `${Math.round(s / 86400)}d ago`;
 }
 
+/* =================================================================== *
+ *  COACHING CONFIG — the two blocks below are the ones worth tuning.
+ * =================================================================== */
+
 /**
- * Whether a change is moving the way the phase wants it to.
- * A pound down is good in a CUT and bad in GROWTH, so direction alone can't
- * pick the colour — the phase has to. Unknown phase stays neutral rather than
- * guessing, and the arrow + wording carry the meaning regardless of colour.
+ * What each phase is trying to do to bodyweight. A pound down is good in a
+ * CUT and bad in GROWTH, so direction alone can't judge a week — the phase
+ * has to. Anything not listed here stays neutral rather than guessing.
+ *
+ * PRIMING is set to 'down' from the pattern in the sheets (173 -> 172 -> 171
+ * -> 169 -> 168 across priming weeks, then into GROWTH). Change it here if
+ * that isn't the intent.
  */
+const PHASE_INTENT = {
+  CUT: 'down', PREP: 'down', PRIMING: 'down', SHRED: 'down',
+  DIET: 'down', DEFICIT: 'down', PEAK: 'down',
+  GROWTH: 'up', BUILD: 'up', BULK: 'up', REVERSE: 'up',
+  GAIN: 'up', OFFSEASON: 'up',
+  MAINTAIN: 'hold', MAINTENANCE: 'hold', BRIDGE: 'hold',
+};
+
+/**
+ * Target rate of change as a percentage of bodyweight per week — the number
+ * that actually decides whether to touch calories. Outside the band is not
+ * automatically wrong, it is worth a look.
+ */
+const RATE_BANDS = {
+  down: { min: -1.00, max: -0.40 },
+  up:   { min:  0.10, max:  0.50 },
+  hold: { min: -0.25, max:  0.25 },
+};
+
+/** Weight swings under this are scale noise, not a trend. */
+const NOISE_LB = 0.15;
+
+/* =================================================================== */
+
+function phaseIntent(phase) {
+  const p = String(phase || '').toUpperCase().trim();
+  if (!p) return null;
+  if (PHASE_INTENT[p]) return PHASE_INTENT[p];
+  // Sheets carry things like "GROWTH (wk 2)" or "PREP - peak", so fall back
+  // to a substring match on the longest key that appears.
+  const hit = Object.keys(PHASE_INTENT)
+    .filter((k) => p.includes(k))
+    .sort((a, b) => b.length - a.length)[0];
+  return hit ? PHASE_INTENT[hit] : null;
+}
+
+/**
+ * Judge the week against the phase's target rate.
+ * status: ontrack | slow | fast | wrong | none
+ */
+function rateInfo(c) {
+  const intent = phaseIntent(c.phase);
+  const pct = c.deltaPct;
+  if (pct == null || !intent) return { intent, pct, status: 'none', label: '', tone: 'mute' };
+
+  const band = RATE_BANDS[intent];
+  let status;
+  if (intent === 'hold') {
+    status = Math.abs(pct) <= band.max ? 'ontrack' : 'fast';
+  } else {
+    const wrongWay = intent === 'down' ? pct > 0.10 : pct < -0.10;
+    if (wrongWay) status = 'wrong';
+    else if (pct >= band.min && pct <= band.max) status = 'ontrack';
+    else if (intent === 'down') status = pct < band.min ? 'fast' : 'slow';
+    else status = pct > band.max ? 'fast' : 'slow';
+  }
+
+  const LABEL = {
+    ontrack: 'on track',
+    slow: 'slower than target',
+    fast: 'faster than target',
+    wrong: intent === 'down' ? 'gaining in a cut' : 'losing in a growth',
+  };
+  // The card has room for two words, the detail view for the whole sentence.
+  const SHORT = { ontrack: 'on track', slow: 'slow', fast: 'fast', wrong: 'wrong way' };
+  const TONE = { ontrack: 'ok', slow: 'mute', fast: 'warn', wrong: 'stop' };
+  return { intent, pct, status, label: LABEL[status], short: SHORT[status], tone: TONE[status] };
+}
+
+/** Colour for the lb-change chip: does the move go the way the phase wants? */
 function deltaTone(phase, delta) {
-  if (delta == null) return 'mute';
-  if (Math.abs(delta) < 0.15) return 'mute';           // inside the noise floor
-  const p = String(phase || '').toUpperCase();
-  const wantDown = /CUT|PREP|SHRED|DIET|DEFICIT|LEAN/.test(p);
-  const wantUp = /GROWTH|BUILD|BULK|REVERSE|GAIN|OFFSEASON|IMPROV/.test(p);
-  if (wantDown === wantUp) return 'mute';              // neither, or ambiguous
-  return (wantDown ? delta < 0 : delta > 0) ? 'ok' : 'warn';
+  if (delta == null || Math.abs(delta) < NOISE_LB) return 'mute';
+  const intent = phaseIntent(phase);
+  if (intent !== 'down' && intent !== 'up') return 'mute';
+  return (intent === 'down' ? delta < 0 : delta > 0) ? 'ok' : 'warn';
 }
 
 function phaseClass(phase) {
@@ -688,8 +787,57 @@ function clientCard(c) {
       <div class="vs">last wk<b>${fmt(c.lastWeek?.avg, 2)}</b></div>
     </div>
     ${sparkline(c)}
-    <div class="dots">${dots}<span>${c.loggedDays ?? 0}/${c.dueDays ?? 0} logged</span></div>
+    <div class="dots">${dots}<span>${c.loggedDays ?? 0}/${c.dueDays ?? 0}</span>
+      ${rateBadge(c)}</div>
   </button>`;
+}
+
+/** "-0.62 %/wk · on track" — the number that decides whether to move calories. */
+function rateBadge(c) {
+  const r = rateInfo(c);
+  if (r.status === 'none') return '';
+  return `<span class="rate r-${r.tone}" title="${esc(r.label)}">${fmtSigned(r.pct, 2)} %/wk
+    <span class="lbl">${r.short}</span></span>`;
+}
+
+/**
+ * Everything worth knowing about the roster without reading 27 cards.
+ * Each alert names the clients behind it so it can be acted on directly.
+ */
+function alerts() {
+  const out = [];
+  const quiet = state.clients.filter((c) => !c.error && (c.staleDays ?? 0) >= 2 && (c.dueDays ?? 0) >= 2);
+  const silent = state.clients.filter((c) => !c.error && (c.dueDays ?? 0) >= 2 && (c.loggedDays ?? 0) === 0);
+  const wrongWay = state.clients.filter((c) => rateInfo(c).status === 'wrong');
+  const tooFast = state.clients.filter((c) => rateInfo(c).status === 'fast');
+  const broken = state.clients.filter((c) => c.error);
+
+  if (silent.length) out.push({ tone: 'stop', text: `no weigh-ins at all this week`, who: silent });
+  const quietOnly = quiet.filter((c) => !silent.includes(c));
+  if (quietOnly.length) out.push({ tone: 'warn', text: `gone quiet for 2+ days`, who: quietOnly });
+  if (wrongWay.length) out.push({ tone: 'stop', text: `moving against their phase`, who: wrongWay });
+  if (tooFast.length) out.push({ tone: 'warn', text: `changing faster than target`, who: tooFast });
+  if (broken.length) out.push({ tone: 'mute', text: `sheets that couldn't be read`, who: broken });
+  return out;
+}
+
+function alertPanel() {
+  const list = alerts();
+  if (!list.length) {
+    return `<div class="panel" style="display:flex;gap:10px;align-items:center">
+      <span class="alertdot a-ok"></span>
+      <span style="font-size:13px;color:var(--fg-2)">Nothing needs attention — everyone is logging and on target.</span>
+    </div>`;
+  }
+  return `<div class="panel alerts">${list.map((a) => `
+    <div class="alertrow">
+      <span class="alertdot a-${a.tone}"></span>
+      <div>
+        <b>${a.who.length}</b> ${esc(a.text)}
+        <div class="whochips">${a.who.map((c) =>
+          `<button class="whochip" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
+      </div>
+    </div>`).join('')}</div>`;
 }
 
 function groupByDay(list) {
@@ -775,11 +923,14 @@ function todayView() {
       <button class="glass" data-act="refresh">Refresh</button>
     </div>
     ${statusBar()}
+    <h2>Needs attention</h2>
+    ${alertPanel()}
+    <h2>Checking in today <em>${due.length}</em></h2>
     ${due.length
       ? `<div class="cards">${due.map(clientCard).join('')}</div>`
       : `<div class="empty"><h4>Nothing due today</h4>
          <p>No client has ${esc(todayName)} set as their check-in day.</p></div>`}
-    ${behind.length ? `<h2>Missing weigh-ins <em>${behind.length}</em></h2>
+    ${behind.length ? `<h2>Missing weigh-ins elsewhere <em>${behind.length}</em></h2>
       <div class="cards">${behind.map(clientCard).join('')}</div>` : ''}`;
 }
 
@@ -851,6 +1002,20 @@ function detailView() {
   if (!c) return `<button class="back" data-act="back">← Clients</button>
     <div class="empty"><h4>Couldn't load that client</h4><p>${esc(state.error || 'Try again.')}</p></div>`;
 
+  // A sheet we couldn't parse has no numbers to show — say why, and offer the
+  // one thing that still works: opening the real sheet.
+  if (c.error) return `<button class="back" data-act="back">← Clients</button>
+    <div class="top"><div><div class="eyebrow">Unreadable</div><h1>${esc(c.name)}</h1></div></div>
+    <div class="err"><b>This sheet couldn't be read.</b><br>${esc(c.error)}</div>
+    <div class="panel">
+      <div style="font-size:12.5px;color:var(--fg-2);line-height:1.6">
+        Dialed looks for a tab with <b>Weight Log</b> in cell <b>E21</b> and the weekly
+        timeline starting at <b>B33</b>. If this sheet is laid out differently, or the
+        service account only has comment access, it will land here.
+      </div>
+      <div style="margin-top:12px"><a class="glass" href="${esc(c.url)}" target="_blank" rel="noopener">Open sheet</a></div>
+    </div>`;
+
   const p = c.protocol || {};
   const rows = (c.weeks || []).filter((w) => w.weekOf);
 
@@ -875,12 +1040,22 @@ function detailView() {
       <div class="n">${fmt(c.currentAvg, 2)}<small>lb · 7-day avg</small></div>
       ${deltaHTML(c, true)}
     </div>
+    ${(() => { const r = rateInfo(c); return r.status === 'none' ? '' :
+      `<div class="verdict v-${r.tone}"><span class="alertdot a-${r.tone}"></span>
+        ${fmtSigned(r.pct, 2)} %BW/week — ${esc(r.label)}${
+          r.intent === 'hold' ? '' : ` (target ${RATE_BANDS[r.intent].min} to ${RATE_BANDS[r.intent].max} %/wk)`}
+      </div>`; })()}
+    ${(c.staleDays ?? 0) >= 2 ? `<div class="verdict v-warn"><span class="alertdot a-warn"></span>
+      No weigh-in for ${c.staleDays} days${c.lastLoggedDay ? ` — last logged ${esc(c.lastLoggedDay)}` : ''}</div>` : ''}
 
     <div class="panel pad0">${weekChart(c)}</div>
 
     <div class="stats">
       <div class="stat"><div class="k">Last wk avg</div><div class="v">${fmt(c.lastWeek?.avg, 2)}</div></div>
       <div class="stat"><div class="k">Change</div><div class="v">${fmtSigned(c.delta, 2)}<small> lb</small></div></div>
+      <div class="stat"><div class="k">Rate</div><div class="v">${
+        rateInfo(c).status === 'none' ? '—' : `${fmtSigned(rateInfo(c).pct, 2)}<small> %/wk</small>`
+      }</div></div>
       <div class="stat"><div class="k">Weigh-ins</div><div class="v">${c.loggedDays ?? 0}<small>/${c.dueDays ?? 0}</small></div></div>
       <div class="stat"><div class="k">Steps avg</div><div class="v">${fmtInt(c.stepAvg)}</div></div>
       <div class="stat"><div class="k">Cardio</div><div class="v">${c.cardioDone ?? 0}<small>/${c.dueDays ?? 0}</small></div></div>
