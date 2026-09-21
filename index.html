@@ -1,0 +1,1075 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dialed">
+<meta name="robots" content="noindex, nofollow">
+<title>Dialed</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23000'/%3E%3Cpath d='M18 64 L34 52 L46 58 L62 34 L82 44' fill='none' stroke='%234E9BFF' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    --bg:#000; --panel:#0A0A0A; --raised:#101010;
+    --line:#1F1F1F; --line-2:#2A2A2A;
+    --fg:#EDEDED; --fg-2:#A1A1A1; --fg-3:#6E6E6E;
+    --glass:rgba(255,255,255,.045);
+    --glass-line:rgba(255,255,255,.10);
+    --glass-top:rgba(255,255,255,.16);
+    --ok:#3ECF8E; --ok-dim:rgba(62,207,142,.12);
+    --warn:#F5A623; --warn-dim:rgba(245,166,35,.12);
+    --stop:#FF5C5C; --stop-dim:rgba(255,92,92,.12);
+    --cool:#4E9BFF; --cool-dim:rgba(78,155,255,.12);
+    --violet:#9A7CFF; --violet-dim:rgba(154,124,255,.12);
+    --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans);
+       font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; letter-spacing:-.006em;
+       overscroll-behavior-y:none; overflow-x:hidden}
+  body::before{
+    content:""; position:fixed; inset:-30% 0 auto 0; height:520px; z-index:0; pointer-events:none;
+    background:radial-gradient(60% 60% at 22% 0%, rgba(78,155,255,.13), transparent 70%),
+               radial-gradient(45% 55% at 78% 0%, rgba(154,124,255,.10), transparent 70%);
+  }
+  a{color:inherit}
+  button{font-family:inherit; color:inherit}
+  [hidden]{display:none!important}
+
+  .app{display:grid; grid-template-columns:236px 1fr; min-height:100vh; position:relative; z-index:1}
+  .app>*{min-width:0}
+
+  /* ---------------------------------------------------------- sidebar --- */
+  aside{border-right:1px solid var(--line); padding:20px 14px; display:flex; flex-direction:column;
+        gap:20px; position:sticky; top:0; height:100vh; background:rgba(0,0,0,.6); backdrop-filter:blur(12px)}
+  .brand{display:flex; align-items:center; gap:10px; padding:4px 8px}
+  .glyph{width:26px; height:26px; border-radius:7px; display:grid; place-content:center;
+         background:linear-gradient(145deg,#fff,#9A9A9A); color:#000; font-weight:700; font-size:13px; flex:none}
+  .brand b{font-size:14px; font-weight:600; letter-spacing:-.02em; display:block; line-height:1.2}
+  .brand span{font-family:var(--mono); font-size:9.5px; color:var(--fg-3); letter-spacing:.16em; text-transform:uppercase}
+  nav{display:flex; flex-direction:column; gap:2px}
+  nav button{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; color:var(--fg-2);
+        background:none; border:1px solid transparent; font-size:13.5px; cursor:pointer; width:100%; text-align:left;
+        transition:background .12s,color .12s}
+  nav button:hover{background:var(--raised); color:var(--fg)}
+  nav button.on{background:var(--glass); color:var(--fg); border-color:var(--glass-line); box-shadow:inset 0 1px 0 var(--glass-top)}
+  nav svg{width:16px; height:16px; flex:none; opacity:.85}
+  nav .count{margin-left:auto; font-family:var(--mono); font-size:10px; padding:1px 6px; border-radius:999px;
+             background:var(--raised); border:1px solid var(--line-2); color:var(--fg-2)}
+  .who{margin-top:auto; display:flex; gap:9px; align-items:center; padding:9px 10px;
+       border:1px solid var(--line); border-radius:10px; background:var(--panel)}
+  .who .dot{width:26px; height:26px; border-radius:50%; flex:none; background:linear-gradient(145deg,#3ECF8E,#1B7F55)}
+  .who small{display:block; color:var(--fg-3); font-size:11px}
+  .who b{font-size:12.5px; font-weight:500; display:block; line-height:1.25}
+
+  main{padding:26px 30px 90px; max-width:1180px; width:100%; min-width:0}
+  .top{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px}
+  .eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.17em; text-transform:uppercase;
+           color:var(--fg-3); margin-bottom:5px}
+  h1{margin:0; font-size:26px; font-weight:600; letter-spacing:-.03em}
+  h2{margin:26px 0 10px; font-size:13px; font-weight:550; letter-spacing:-.01em; display:flex; align-items:center; gap:8px}
+  h2 em{font-style:normal; color:var(--fg-3); font-weight:400; font-size:11.5px}
+
+  .glass{display:inline-flex; align-items:center; gap:7px; padding:7px 13px; border-radius:10px;
+         font-size:12.5px; font-weight:450; color:var(--fg); background:var(--glass);
+         border:1px solid var(--glass-line);
+         box-shadow:inset 0 1px 0 var(--glass-top), 0 1px 2px rgba(0,0,0,.5);
+         backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%);
+         cursor:pointer; text-decoration:none; transition:border-color .15s, transform .08s}
+  .glass:hover{border-color:rgba(255,255,255,.22)}
+  .glass:active{transform:translateY(1px)}
+  .glass:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+  .glass svg{width:14px; height:14px; opacity:.9}
+  .glass.sm{padding:5px 10px; font-size:11.5px; border-radius:8px}
+  .glass.on{border-color:rgba(78,155,255,.45); color:#fff}
+
+  /* ------------------------------------------------------- search bar --- */
+  .searchwrap{position:relative; margin-bottom:12px}
+  .searchwrap svg{position:absolute; left:12px; top:50%; transform:translateY(-50%);
+                  width:15px; height:15px; color:var(--fg-3); pointer-events:none}
+  #q{width:100%; padding:12px 38px 12px 36px; border-radius:12px; border:1px solid var(--line-2);
+     background:var(--panel); color:var(--fg); font-size:16px; font-family:inherit; letter-spacing:-.01em}
+  #q::placeholder{color:var(--fg-3)}
+  #q:focus{outline:none; border-color:rgba(78,155,255,.5); background:var(--raised)}
+  .clearq{position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:0;
+          color:var(--fg-3); cursor:pointer; padding:6px; line-height:0; border-radius:8px}
+  .clearq:hover{color:var(--fg)}
+
+  .chips{display:flex; gap:7px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px;
+         scrollbar-width:none; min-width:0; -webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{display:none}
+  .chips .glass{flex:none; white-space:nowrap}
+
+  /* ----------------------------------------------------- client cards --- */
+  .cards{display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+  .card{position:relative; border:1px solid var(--line); border-radius:14px; width:100%; text-align:left;
+        background:linear-gradient(180deg,var(--raised),var(--panel)); padding:14px 15px 12px;
+        overflow:hidden; cursor:pointer; font-family:inherit; color:inherit; display:block;
+        transition:border-color .15s, transform .08s}
+  .card::after{content:""; position:absolute; inset:0 0 auto 0; height:1px;
+               background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+  .card:hover{border-color:var(--line-2)}
+  .card:active{transform:scale(.995)}
+  .card:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+  .chead{display:flex; align-items:baseline; gap:8px; margin-bottom:10px}
+  .cname{font-size:15.5px; font-weight:550; letter-spacing:-.02em; overflow:hidden;
+         text-overflow:ellipsis; white-space:nowrap}
+  .cday{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--fg-3);
+        letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; flex:none}
+
+  .figs{display:flex; align-items:flex-end; gap:10px 14px; margin-bottom:10px; flex-wrap:wrap}
+  .bignum{font-size:27px; font-weight:600; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1}
+  .bignum small{font-size:12px; font-weight:400; color:var(--fg-3); letter-spacing:0; margin-left:3px}
+  .delta{display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:12.5px;
+         font-variant-numeric:tabular-nums; padding:3px 8px; border-radius:999px; border:1px solid; white-space:nowrap}
+  .delta .arw{font-size:10px; line-height:1}
+  .d-ok{color:var(--ok); background:var(--ok-dim); border-color:rgba(62,207,142,.3)}
+  .d-warn{color:var(--warn); background:var(--warn-dim); border-color:rgba(245,166,35,.3)}
+  .d-mute{color:var(--fg-2); background:var(--raised); border-color:var(--line-2)}
+  .vs{font-size:11px; color:var(--fg-3); margin-left:auto; text-align:right; line-height:1.35; flex:none}
+  .vs b{display:block; color:var(--fg-2); font-weight:500; font-variant-numeric:tabular-nums; font-family:var(--mono)}
+
+  .tag{display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:9.5px;
+       letter-spacing:.09em; text-transform:uppercase; padding:2px 8px; border-radius:999px; border:1px solid; flex:none}
+  .t-cut{color:var(--cool); background:var(--cool-dim); border-color:rgba(78,155,255,.3)}
+  .t-grow{color:var(--ok); background:var(--ok-dim); border-color:rgba(62,207,142,.3)}
+  .t-prep{color:var(--warn); background:var(--warn-dim); border-color:rgba(245,166,35,.3)}
+  .t-mute{color:var(--fg-3); background:var(--raised); border-color:var(--line-2)}
+  .t-stop{color:var(--stop); background:var(--stop-dim); border-color:rgba(255,92,92,.3)}
+
+  .dots{display:flex; gap:4px; align-items:center; margin-top:2px}
+  .dots i{width:7px; height:7px; border-radius:50%; background:var(--line-2); display:block}
+  .dots i.hit{background:var(--cool)}
+  .dots i.miss{background:none; border:1px solid var(--stop); box-sizing:border-box}
+  .dots i.future{background:none; border:1px solid var(--line-2); box-sizing:border-box; opacity:.6}
+  .dots span{font-family:var(--mono); font-size:10px; color:var(--fg-3); margin-left:5px}
+
+  /* ------------------------------------------------------------ chart --- */
+  .spark{display:block; width:100%; height:auto; aspect-ratio:300/44; margin:2px 0 8px; overflow:visible}
+  .bigchart{display:block; width:100%; height:auto; aspect-ratio:340/180;
+            overflow:visible; touch-action:pan-y}
+  .trendchart{aspect-ratio:340/130}
+  .chartwrap{position:relative}
+  .ctip{position:absolute; pointer-events:none; opacity:0; transition:opacity .1s;
+        background:rgba(20,20,20,.96); border:1px solid var(--line-2); border-radius:8px; padding:7px 9px;
+        font-family:var(--mono); font-size:10.5px; white-space:nowrap; z-index:5;
+        backdrop-filter:blur(8px); transform:translate(-50%,-115%); line-height:1.5}
+  .ctip b{color:#fff; font-weight:600}
+
+  .panel{border:1px solid var(--line); border-radius:14px; background:var(--panel);
+         padding:15px 16px 13px; margin-bottom:10px; min-width:0}
+  .panel.pad0{overflow-x:auto}
+  .panel.pad0{padding-bottom:6px}
+
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:8px 14px; font-size:13px}
+  .kv dt{color:var(--fg-3); font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+         text-transform:uppercase; padding-top:3px; white-space:nowrap}
+  .kv dd{margin:0; color:var(--fg); overflow-wrap:anywhere}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:8px}
+  .stat{border:1px solid var(--line); border-radius:11px; background:var(--raised); padding:10px 11px}
+  .stat .k{font-family:var(--mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+           color:var(--fg-3); margin-bottom:5px}
+  .stat .v{font-size:17px; font-weight:550; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:11px; color:var(--fg-3); font-weight:400}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  th{font-family:var(--mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+     color:var(--fg-3); text-align:left; padding:0 10px 8px 0; font-weight:500}
+  td{padding:10px 10px 10px 0; border-top:1px solid var(--line); vertical-align:top}
+  td:last-child,th:last-child{padding-right:0}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .note{color:var(--fg-2); line-height:1.5}
+
+  .empty{text-align:center; padding:40px 20px; color:var(--fg-3)}
+  .empty h4{margin:0 0 5px; color:var(--fg-2); font-size:14px; font-weight:500}
+  .empty p{margin:0 auto; max-width:44ch; font-size:12.5px; line-height:1.6}
+  .err{border:1px solid rgba(255,92,92,.4); background:var(--stop-dim); border-radius:12px;
+       padding:13px 15px; font-size:12.5px; margin-bottom:12px; line-height:1.55}
+  .warnbar{border:1px solid rgba(245,166,35,.35); background:var(--warn-dim); border-radius:12px;
+       padding:10px 13px; font-size:12px; margin-bottom:12px; color:var(--warn)}
+  .sk{background:linear-gradient(90deg,var(--raised),#1a1a1a,var(--raised)); background-size:200% 100%;
+      animation:sh 1.3s linear infinite; border-radius:8px; color:transparent!important}
+  @keyframes sh{to{background-position:-200% 0}}
+  .foot{margin-top:22px; font-family:var(--mono); font-size:10px; color:var(--fg-3); letter-spacing:.06em}
+
+  /* ------------------------------------------------------------- gate --- */
+  .gate{position:fixed; inset:0; z-index:100; display:grid; place-content:center; padding:24px;
+        background:#000; text-align:center}
+  .gate form{display:flex; flex-direction:column; gap:10px; width:min(320px,86vw); margin-top:22px}
+  .gate input{padding:13px 14px; border-radius:12px; border:1px solid var(--line-2); background:var(--panel);
+              color:var(--fg); font-size:16px; font-family:inherit; text-align:center; letter-spacing:.04em}
+  .gate input:focus{outline:none; border-color:rgba(78,155,255,.5)}
+  .gate button{padding:13px 14px; border-radius:12px; border:1px solid var(--glass-line); background:var(--glass);
+               color:var(--fg); font-size:14px; font-weight:500; cursor:pointer}
+  .gate .msg{min-height:18px; font-size:12px; color:var(--stop); margin-top:2px}
+  .gate .logo{width:52px; height:52px; border-radius:14px; margin:0 auto 14px;
+              background:linear-gradient(145deg,#fff,#8A8A8A); display:grid; place-content:center}
+
+  /* ----------------------------------------------------------- detail --- */
+  .back{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--fg-2);
+        background:none; border:0; cursor:pointer; padding:6px 0; margin-bottom:6px}
+  .back:hover{color:var(--fg)}
+  .hero{display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin:4px 0 16px}
+  .hero .n{font-size:44px; font-weight:600; letter-spacing:-.04em; font-variant-numeric:tabular-nums; line-height:.95}
+  .hero .n small{font-size:15px; color:var(--fg-3); font-weight:400; letter-spacing:0; margin-left:4px}
+  .hero .delta{font-size:14px; padding:5px 11px}
+
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--fg-2); margin-top:10px}
+  .legend i{display:inline-block; width:14px; height:0; border-top-width:2px; margin-right:6px;
+            vertical-align:middle; border-top-style:solid}
+
+  /* ------------------------------ phone: sidebar becomes a tab bar ------ */
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    main{padding:16px 16px calc(84px + env(safe-area-inset-bottom))}
+    h1{font-size:22px}
+    .hero .n{font-size:38px}
+    .cards{grid-template-columns:1fr}
+    aside{
+      position:fixed; left:0; right:0; bottom:0; top:auto; height:auto; z-index:50;
+      flex-direction:row; gap:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+      border-right:none; border-top:1px solid var(--line);
+      background:rgba(0,0,0,.88); backdrop-filter:blur(18px) saturate(160%);
+      -webkit-backdrop-filter:blur(18px) saturate(160%);
+    }
+    aside .brand, aside .who{display:none}
+    aside nav{flex-direction:row; width:100%; gap:0}
+    aside nav button{
+      flex-direction:column; gap:3px; align-items:center; justify-content:center;
+      min-width:0; flex:1 1 0; padding:7px 2px; font-size:10px; border-radius:10px;
+      letter-spacing:-.01em; text-align:center; line-height:1.15;
+    }
+    aside nav svg{width:19px; height:19px}
+    aside nav .count{margin:0; position:absolute; transform:translate(16px,-11px); font-size:8.5px; padding:0 4px}
+    aside nav button{position:relative}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important; transition-duration:.01ms!important}
+  }
+</style>
+
+<div class="gate" id="gate" hidden>
+  <div>
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none" stroke="#000" stroke-width="9"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M16 66 L36 50 L50 58 L64 32 L84 42"/></svg>
+    </div>
+    <div class="eyebrow">Dialed</div>
+    <div style="font-size:15px;color:var(--fg-2)">Coach console</div>
+    <form id="gateForm">
+      <input id="pass" type="password" inputmode="text" autocomplete="current-password"
+             placeholder="Passcode" aria-label="Passcode" required>
+      <button type="submit" id="gateBtn">Unlock</button>
+      <div class="msg" id="gateMsg" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside>
+    <div class="brand">
+      <div class="glyph">D</div>
+      <div><b>Dialed</b><span>Coach console</span></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="who">
+      <div class="dot"></div>
+      <div><b id="whoCount">—</b><small id="whoAge">loading…</small></div>
+    </div>
+  </aside>
+  <main id="view"></main>
+</div>
+
+<script type="module">
+/* ====================================================================== *
+ *  Dialed — a phone-first reader for the "<Name> - TBD Guide" sheets.
+ *  The whole point is to answer one question fast: how is this client's
+ *  weight tracking this week against last week's average?
+ * ====================================================================== */
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const DAY_ORDER = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const todayName = DAY_ORDER[new Date().getDay()];
+
+const state = {
+  tab: 'roster',
+  clients: [],
+  updatedAt: 0,
+  stale: false,
+  loading: true,
+  error: '',
+  query: '',
+  sort: 'day',
+  detail: null,     // client id
+  detailData: null,
+  detailLoading: false,
+};
+
+/* ------------------------------------------------------------ helpers -- */
+
+const fmt = (n, d = 1) =>
+  n == null || Number.isNaN(n) ? '—' : Number(n).toFixed(d).replace(/\.0+$/, (m) => (d > 1 ? m : ''));
+
+const fmtSigned = (n, d = 1) => (n == null ? '—' : (n > 0 ? '+' : '') + Number(n).toFixed(d));
+
+const fmtInt = (n) => (n == null ? '—' : Math.round(n).toLocaleString());
+
+function ago(ts) {
+  if (!ts) return '';
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+}
+
+/**
+ * Whether a change is moving the way the phase wants it to.
+ * A pound down is good in a CUT and bad in GROWTH, so direction alone can't
+ * pick the colour — the phase has to. Unknown phase stays neutral rather than
+ * guessing, and the arrow + wording carry the meaning regardless of colour.
+ */
+function deltaTone(phase, delta) {
+  if (delta == null) return 'mute';
+  if (Math.abs(delta) < 0.15) return 'mute';           // inside the noise floor
+  const p = String(phase || '').toUpperCase();
+  const wantDown = /CUT|PREP|SHRED|DIET|DEFICIT|LEAN/.test(p);
+  const wantUp = /GROWTH|BUILD|BULK|REVERSE|GAIN|OFFSEASON|IMPROV/.test(p);
+  if (wantDown === wantUp) return 'mute';              // neither, or ambiguous
+  return (wantDown ? delta < 0 : delta > 0) ? 'ok' : 'warn';
+}
+
+function phaseClass(phase) {
+  const p = String(phase || '').toUpperCase();
+  if (/CUT|DIET|SHRED/.test(p)) return 't-cut';
+  if (/GROWTH|BUILD|BULK|REVERSE/.test(p)) return 't-grow';
+  if (/PREP|PEAK|PRIM/.test(p)) return 't-prep';
+  return 't-mute';
+}
+
+function deltaHTML(c, big = false) {
+  const tone = deltaTone(c.phase, c.delta);
+  if (c.delta == null) {
+    return `<span class="delta d-mute">no last-week avg</span>`;
+  }
+  const arrow = c.delta > 0.001 ? '▲' : c.delta < -0.001 ? '▼' : '■';
+  const word = c.delta > 0.001 ? 'up' : c.delta < -0.001 ? 'down' : 'flat';
+  return `<span class="delta d-${tone}" title="${esc(word)} ${Math.abs(c.delta).toFixed(2)} lb versus last week's average">`
+    + `<span class="arw" aria-hidden="true">${arrow}</span>`
+    + `${fmtSigned(c.delta, 2)} lb`
+    + (big ? ` <span style="opacity:.7">vs last wk</span>` : '')
+    + `</span>`;
+}
+
+/* -------------------------------------------------------------- charts --
+ * One series (this week's fasted weights) plus two direct-labelled reference
+ * lines. Bodyweight moves in tenths on a ~160 lb base, so the y-axis is fitted
+ * to the data — a zero baseline would flatten every line into nothing. The
+ * axis is labelled with real values at both ends so the scale stays honest.
+ */
+
+/**
+ * A round marker drawn at a fixed pixel size.
+ * The charts scale their viewBox to the card width, so a plain <circle> would
+ * grow and shrink with the card. A zero-length path with a round linecap plus
+ * vector-effect="non-scaling-stroke" is always exactly `size` px across, which
+ * keeps markers consistent between a phone card and a desktop panel.
+ */
+function dot(x, y, size, color, ring = 'var(--panel)') {
+  const at = `M${x.toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${y.toFixed(1)}`;
+  return (ring ? `<path d="${at}" stroke="${ring}" stroke-width="${size + 3}" stroke-linecap="round"
+        fill="none" vector-effect="non-scaling-stroke"/>` : '')
+    + `<path d="${at}" stroke="${color}" stroke-width="${size}" stroke-linecap="round"
+        fill="none" vector-effect="non-scaling-stroke"/>`;
+}
+
+function scale(values, pad = 0.25) {
+  const nums = values.filter((v) => v != null && !Number.isNaN(v));
+  if (!nums.length) return null;
+  let lo = Math.min(...nums), hi = Math.max(...nums);
+  if (hi - lo < 0.6) { const mid = (hi + lo) / 2; lo = mid - 0.6; hi = mid + 0.6; }
+  const p = (hi - lo) * pad;
+  return { lo: lo - p, hi: hi + p };
+}
+
+/** Compact in-card sparkline: the week's logged weights against last week's average. */
+function sparkline(c) {
+  const pts = c.days || [];
+  const weights = pts.map((d) => d.weight);
+  const dom = scale([...weights, c.lastWeek?.avg].filter((v) => v != null));
+  if (!dom || weights.every((w) => w == null)) {
+    return `<div style="height:44px;display:flex;align-items:center">
+      <span style="font-size:11.5px;color:var(--fg-3)">No weigh-ins logged yet this week</span></div>`;
+  }
+  const W = 300, H = 44, L = 2, R = 2, T = 6, B = 6;
+  const x = (i) => L + (i * (W - L - R)) / Math.max(1, pts.length - 1);
+  const y = (v) => T + ((dom.hi - v) * (H - T - B)) / (dom.hi - dom.lo);
+
+  const seg = [];
+  let run = [];
+  pts.forEach((d, i) => {
+    if (d.weight != null) run.push(`${x(i).toFixed(1)},${y(d.weight).toFixed(1)}`);
+    else { if (run.length > 1) seg.push(run.join(' ')); run = []; }
+  });
+  if (run.length > 1) seg.push(run.join(' '));
+
+  const ref = c.lastWeek?.avg != null
+    ? `<line x1="0" y1="${y(c.lastWeek.avg).toFixed(1)}" x2="${W}" y2="${y(c.lastWeek.avg).toFixed(1)}"
+             stroke="var(--fg-3)" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>` : '';
+
+  const dots = pts.map((d, i) => d.weight == null ? '' : dot(x(i), y(d.weight), 5, 'var(--cool)')).join('');
+
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    ${ref}
+    ${seg.map((s) => `<polyline points="${s}" fill="none" stroke="var(--cool)" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join('')}
+    ${dots}
+  </svg>`;
+}
+
+/** Full week chart for the detail view, with a touch/hover crosshair. */
+function weekChart(c) {
+  const pts = c.days || [];
+  const weights = pts.map((d) => d.weight);
+  const refs = [c.lastWeek?.avg, c.currentAvg].filter((v) => v != null);
+  const dom = scale([...weights.filter((v) => v != null), ...refs], 0.3);
+  if (!dom) return `<div class="empty"><h4>Nothing logged yet</h4>
+    <p>This week's weight log is empty. It'll appear here as soon as ${esc(c.name)} fills it in.</p></div>`;
+
+  const W = 340, H = 180, L = 30, R = 44, T = 14, B = 26;
+  const x = (i) => L + (i * (W - L - R)) / Math.max(1, pts.length - 1);
+  const y = (v) => T + ((dom.hi - v) * (H - T - B)) / (dom.hi - dom.lo);
+
+  const seg = []; let run = [];
+  pts.forEach((d, i) => {
+    if (d.weight != null) run.push([x(i), y(d.weight)]);
+    else { if (run.length > 1) seg.push(run); run = []; }
+  });
+  if (run.length > 1) seg.push(run);
+
+  const gridVals = [dom.lo, (dom.lo + dom.hi) / 2, dom.hi];
+  const grid = gridVals.map((v) => `
+    <line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}"
+          stroke="var(--line)" stroke-width="1"/>
+    <text x="${L - 5}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end"
+          font-family="var(--mono)" font-size="8" fill="var(--fg-3)">${v.toFixed(1)}</text>`).join('');
+
+  const refLine = (v, color, label, dash) => v == null ? '' : `
+    <line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}"
+          stroke="${color}" stroke-width="1.5" stroke-dasharray="${dash}" opacity=".9"/>
+    <text x="${W - R + 5}" y="${(y(v) + 3).toFixed(1)}"
+          font-family="var(--mono)" font-size="8" fill="${color}">${label}</text>`;
+
+  const dots = pts.map((d, i) => d.weight == null ? '' : dot(x(i), y(d.weight), 8, 'var(--cool)')).join('');
+
+  const missing = pts.map((d, i) => (d.weight != null || !d.due) ? '' : `
+    <line x1="${x(i).toFixed(1)}" y1="${T}" x2="${x(i).toFixed(1)}" y2="${H - B}"
+          stroke="var(--stop)" stroke-width="1" stroke-dasharray="2 4" opacity=".45"/>`).join('');
+
+  const labels = pts.map((d, i) => `
+    <text x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle"
+          font-family="var(--mono)" font-size="8"
+          fill="${d.day === todayName ? 'var(--fg)' : 'var(--fg-3)'}">${esc(d.day.slice(0, 3))}</text>`).join('');
+
+  // Invisible wide hit strips so a thumb can hit a day without hitting the dot.
+  const hit = pts.map((d, i) => `
+    <rect data-i="${i}" x="${(x(i) - (W - L - R) / (pts.length * 2)).toFixed(1)}" y="${T}"
+          width="${((W - L - R) / pts.length).toFixed(1)}" height="${H - T - B}"
+          fill="transparent" style="cursor:pointer"/>`).join('');
+
+  return `<div class="chartwrap">
+    <svg class="bigchart" id="wk" viewBox="0 0 ${W} ${H}"
+         role="img" aria-label="Daily fasted weight this week against last week's average">
+      ${grid}
+      ${missing}
+      ${refLine(c.lastWeek?.avg, 'var(--fg-3)', 'last wk', '4 3')}
+      ${refLine(c.currentAvg, 'var(--cool)', 'this wk', '2 3')}
+      ${seg.map((s) => `<polyline points="${s.map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')}"
+          fill="none" stroke="var(--cool)" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join('')}
+      ${dots}
+      ${labels}
+      ${hit}
+    </svg>
+    <div class="ctip" id="wkTip"></div>
+  </div>
+  <div class="legend">
+    <span><i style="border-color:var(--cool);border-top-style:solid;border-top-width:2px"></i>Daily fasted weight</span>
+    <span><i style="border-color:var(--cool);border-top-style:dotted"></i>This week avg ${fmt(c.currentAvg, 2)}</span>
+    <span><i style="border-color:var(--fg-3);border-top-style:dashed"></i>Last week avg ${fmt(c.lastWeek?.avg, 2)}</span>
+    ${pts.some((d) => d.due && d.weight == null)
+      ? `<span><i style="border-color:var(--stop);border-top-style:dotted"></i>Missed weigh-in</span>` : ''}
+  </div>`;
+}
+
+/** Longer-horizon view: weekly averages from the sheet's own timeline. */
+function trendChart(weeks) {
+  const rows = weeks.filter((w) => w.avg != null).slice(0, 16).reverse();
+  if (rows.length < 2) return '';
+  const dom = scale(rows.map((r) => r.avg), 0.2);
+  const W = 340, H = 130, L = 30, R = 10, T = 12, B = 22;
+  const x = (i) => L + (i * (W - L - R)) / Math.max(1, rows.length - 1);
+  const y = (v) => T + ((dom.hi - v) * (H - T - B)) / (dom.hi - dom.lo);
+
+  const grid = [dom.lo, dom.hi].map((v) => `
+    <line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}"
+          stroke="var(--line)" stroke-width="1"/>
+    <text x="${L - 5}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end"
+          font-family="var(--mono)" font-size="8" fill="var(--fg-3)">${v.toFixed(1)}</text>`).join('');
+
+  const line = rows.map((r, i) => `${x(i).toFixed(1)},${y(r.avg).toFixed(1)}`).join(' ');
+  const dots = rows.map((r, i) =>
+    `<g><title>${esc(r.weekOf)} — ${r.avg}</title>${dot(x(i), y(r.avg), 6, 'var(--cool)')}</g>`).join('');
+
+  const ends = [0, rows.length - 1].map((i) => `
+    <text x="${x(i).toFixed(1)}" y="${H - 7}" text-anchor="${i === 0 ? 'start' : 'end'}"
+          font-family="var(--mono)" font-size="8" fill="var(--fg-3)">${esc(rows[i].weekOf)}</text>`).join('');
+
+  return `<h2>Weekly averages <em>${rows.length} weeks from the sheet's timeline</em></h2>
+  <div class="panel pad0">
+    <svg class="bigchart trendchart" viewBox="0 0 ${W} ${H}"
+         role="img" aria-label="Weekly average weight over the last ${rows.length} weeks">
+      ${grid}
+      <polyline points="${line}" fill="none" stroke="var(--cool)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      ${dots}${ends}
+    </svg>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------- data -- */
+
+async function api(path, opts) {
+  const res = await fetch(path, { credentials: 'same-origin', ...opts });
+  if (res.status === 401) { showGate(); throw new Error('unauthorized'); }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+  return body;
+}
+
+async function loadRoster(force = false) {
+  state.loading = true; state.error = ''; render();
+  try {
+    const d = await api(`/api/roster${force ? '?force=1' : ''}`);
+    state.clients = d.clients || [];
+    state.updatedAt = d.updatedAt;
+    state.stale = d.stale;
+    state.refreshError = d.refreshError;
+  } catch (e) {
+    if (e.message !== 'unauthorized') state.error = e.message;
+  } finally {
+    state.loading = false; render();
+  }
+}
+
+async function loadClient(id, force = false) {
+  state.detailLoading = true; render();
+  try {
+    const d = await api(`/api/client?id=${encodeURIComponent(id)}${force ? '&force=1' : ''}`);
+    state.detailData = d.client;
+  } catch (e) {
+    if (e.message !== 'unauthorized') state.error = e.message;
+  } finally {
+    state.detailLoading = false; render();
+  }
+}
+
+/* ------------------------------------------------------------ the gate -- */
+
+function showGate() {
+  $('#gate').hidden = false;
+  $('#app').hidden = true;
+  setTimeout(() => $('#pass').focus(), 60);
+}
+
+function showApp() {
+  $('#gate').hidden = true;
+  $('#app').hidden = false;
+}
+
+$('#gateForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#gateBtn'), msg = $('#gateMsg');
+  btn.disabled = true; btn.textContent = 'Checking…'; msg.textContent = '';
+  try {
+    await api('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode: $('#pass').value }),
+    });
+    $('#pass').value = '';
+    showApp();
+    loadRoster();
+  } catch (err) {
+    msg.textContent = err.message === 'unauthorized' ? 'Wrong passcode' : err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Unlock';
+  }
+});
+
+/* -------------------------------------------------------------- views --- */
+
+const ICONS = {
+  roster: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  today: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>',
+  prep: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+};
+
+const svgIcon = (k) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
+
+function dueToday() {
+  return state.clients.filter((c) => (c.protocol?.checkInDay || '').trim() === todayName);
+}
+
+function prepClients() {
+  return state.clients
+    .filter((c) => {
+      const w = parseFloat(c.protocol?.weeksOut);
+      return Number.isFinite(w) || (c.protocol?.showDay || '').trim();
+    })
+    .sort((a, b) => {
+      const wa = parseFloat(a.protocol?.weeksOut), wb = parseFloat(b.protocol?.weeksOut);
+      return (Number.isFinite(wa) ? wa : 999) - (Number.isFinite(wb) ? wb : 999);
+    });
+}
+
+function renderNav() {
+  const tabs = [
+    ['roster', 'Clients', state.clients.length],
+    ['today', 'Today', dueToday().length],
+    ['prep', 'Prep', prepClients().length],
+    ['settings', 'Settings', null],
+  ];
+  $('#nav').innerHTML = tabs.map(([k, label, n]) => `
+    <button data-tab="${k}" class="${state.tab === k && !state.detail ? 'on' : ''}">
+      ${svgIcon(k)}<span>${label}</span>
+      ${n ? `<span class="count">${n}</span>` : ''}
+    </button>`).join('');
+}
+
+function clientCard(c) {
+  if (c.error) {
+    return `<button class="card" data-id="${esc(c.id)}">
+      <div class="chead"><div class="cname">${esc(c.name)}</div>
+        <span class="tag t-stop">unreadable</span></div>
+      <div style="font-size:11.5px;color:var(--fg-3);line-height:1.5">${esc(c.error)}</div>
+    </button>`;
+  }
+  const dots = (c.days || []).map((d) => {
+    const cls = d.weight != null ? 'hit' : (d.due ? 'miss' : 'future');
+    return `<i class="${cls}" title="${esc(d.day)}${d.weight != null ? ` — ${d.weight}` : ''}"></i>`;
+  }).join('');
+
+  return `<button class="card" data-id="${esc(c.id)}">
+    <div class="chead">
+      <div class="cname">${esc(c.name)}</div>
+      ${c.phase ? `<span class="tag ${phaseClass(c.phase)}">${esc(c.phase)}</span>` : ''}
+      <div class="cday">${esc((c.protocol?.checkInDay || '').slice(0, 3) || '—')}</div>
+    </div>
+    <div class="figs">
+      <div class="bignum">${fmt(c.currentAvg, 2)}<small>lb avg</small></div>
+      ${deltaHTML(c)}
+      <div class="vs">last wk<b>${fmt(c.lastWeek?.avg, 2)}</b></div>
+    </div>
+    ${sparkline(c)}
+    <div class="dots">${dots}<span>${c.loggedDays ?? 0}/${c.dueDays ?? 0} logged</span></div>
+  </button>`;
+}
+
+function groupByDay(list) {
+  const groups = new Map();
+  for (const c of list) {
+    const d = (c.protocol?.checkInDay || '').trim() || 'No check-in day set';
+    if (!groups.has(d)) groups.set(d, []);
+    groups.get(d).push(c);
+  }
+  // Today first, then the rest of the week in order, then anything unlabelled.
+  const ti = DAY_ORDER.indexOf(todayName);
+  const rank = (d) => {
+    const i = DAY_ORDER.indexOf(d);
+    return i < 0 ? 99 : (i - ti + 7) % 7;
+  };
+  return [...groups.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
+}
+
+function filtered() {
+  const q = state.query.trim().toLowerCase();
+  let list = state.clients;
+  if (q) list = list.filter((c) => c.name.toLowerCase().includes(q));
+  const byAbs = (a, b) => Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0);
+  if (state.sort === 'move') list = [...list].sort(byAbs);
+  if (state.sort === 'gain') list = [...list].sort((a, b) => (b.delta ?? -99) - (a.delta ?? -99));
+  if (state.sort === 'drop') list = [...list].sort((a, b) => (a.delta ?? 99) - (b.delta ?? 99));
+  if (state.sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+  if (state.sort === 'behind') list = [...list].sort((a, b) => (b.missedDays ?? 0) - (a.missedDays ?? 0));
+  return list;
+}
+
+function rosterView() {
+  const list = filtered();
+  const grouped = state.sort === 'day' && !state.query;
+  const sorts = [
+    ['day', 'By check-in day'], ['name', 'A–Z'], ['move', 'Biggest move'],
+    ['gain', 'Gaining'], ['drop', 'Dropping'], ['behind', 'Missed logs'],
+  ];
+
+  const body = state.loading
+    ? `<div class="cards">${'<div class="card sk" style="height:172px"></div>'.repeat(6)}</div>`
+    : !list.length
+      ? `<div class="empty"><h4>${state.query ? 'No match' : 'No client sheets found'}</h4>
+         <p>${state.query
+            ? `Nothing matches “${esc(state.query)}”.`
+            : 'Make sure the service account can see the sheets, and that each one is named like “Austin - TBD Guide”.'}</p></div>`
+      : grouped
+        ? groupByDay(list).map(([day, cs]) => `
+            <h2>${esc(day)}${day === todayName ? ' <em>· today</em>' : ''} <em>${cs.length}</em></h2>
+            <div class="cards">${cs.map(clientCard).join('')}</div>`).join('')
+        : `<div class="cards">${list.map(clientCard).join('')}</div>`;
+
+  return `
+    <div class="top">
+      <div><div class="eyebrow">Roster</div><h1>Clients</h1></div>
+      <button class="glass" data-act="refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh
+      </button>
+    </div>
+    ${statusBar()}
+    <div class="searchwrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search ${state.clients.length} clients…"
+             value="${esc(state.query)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      ${state.query ? `<button class="clearq" data-act="clearq" aria-label="Clear search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>` : ''}
+    </div>
+    <div class="chips">
+      ${sorts.map(([k, l]) => `<button class="glass sm ${state.sort === k ? 'on' : ''}" data-sort="${k}">${l}</button>`).join('')}
+    </div>
+    ${body}
+    <div class="foot">${state.clients.length} clients · updated ${ago(state.updatedAt)}</div>`;
+}
+
+function todayView() {
+  const due = dueToday();
+  const behind = state.clients.filter((c) => (c.missedDays ?? 0) > 0 && !due.includes(c));
+  return `
+    <div class="top">
+      <div><div class="eyebrow">${esc(todayName)}</div><h1>Check-ins today</h1></div>
+      <button class="glass" data-act="refresh">Refresh</button>
+    </div>
+    ${statusBar()}
+    ${due.length
+      ? `<div class="cards">${due.map(clientCard).join('')}</div>`
+      : `<div class="empty"><h4>Nothing due today</h4>
+         <p>No client has ${esc(todayName)} set as their check-in day.</p></div>`}
+    ${behind.length ? `<h2>Missing weigh-ins <em>${behind.length}</em></h2>
+      <div class="cards">${behind.map(clientCard).join('')}</div>` : ''}`;
+}
+
+function prepView() {
+  const list = prepClients();
+  return `
+    <div class="top">
+      <div><div class="eyebrow">Countdown</div><h1>Prep board</h1></div>
+      <button class="glass" data-act="refresh">Refresh</button>
+    </div>
+    ${statusBar()}
+    ${list.length
+      ? `<div class="panel pad0"><table>
+          <thead><tr><th>Client</th><th>Out</th><th>Show</th><th>Phase</th><th style="text-align:right">Δ wk</th></tr></thead>
+          <tbody>${list.map((c) => `
+            <tr data-id="${esc(c.id)}" style="cursor:pointer">
+              <td style="font-weight:500">${esc(c.name)}</td>
+              <td class="num">${esc(c.protocol?.weeksOut || '—')}${c.protocol?.weeksOut ? ' wk' : ''}</td>
+              <td class="num" style="color:var(--fg-2)">${esc(c.protocol?.showDay || '—')}</td>
+              <td>${c.phase ? `<span class="tag ${phaseClass(c.phase)}">${esc(c.phase)}</span>` : '—'}</td>
+              <td class="num" style="text-align:right">${deltaHTML(c)}</td>
+            </tr>`).join('')}</tbody></table></div>`
+      : `<div class="empty"><h4>No one is in prep</h4>
+         <p>Clients show up here once their sheet has a Show Day or Weeks Out filled in.</p></div>`}`;
+}
+
+function settingsView() {
+  return `
+    <div class="top"><div><div class="eyebrow">Console</div><h1>Settings</h1></div></div>
+    ${statusBar()}
+    <div class="panel">
+      <dl class="kv">
+        <dt>Clients</dt><dd>${state.clients.length}</dd>
+        <dt>Data age</dt><dd>${ago(state.updatedAt) || '—'}</dd>
+        <dt>Unreadable</dt><dd>${state.clients.filter((c) => c.error).length}</dd>
+        <dt>Today</dt><dd>${esc(todayName)}</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="glass" data-act="refresh">Force refresh from Google</button>
+        <button class="glass" data-act="signout">Sign out</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--fg-3);margin-top:11px;line-height:1.6">
+        Summaries are cached for 10 minutes so the roster loads instantly on a phone.
+        Force refresh re-reads every sheet, which takes a few seconds.
+      </div>
+    </div>
+    ${state.clients.some((c) => c.error) ? `<h2>Sheets that failed to read</h2>
+      <div class="panel pad0"><table><tbody>${state.clients.filter((c) => c.error).map((c) => `
+        <tr><td style="font-weight:500">${esc(c.name)}</td>
+            <td class="note">${esc(c.error)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+}
+
+function statusBar() {
+  if (state.error) return `<div class="err"><b>Couldn't load.</b> ${esc(state.error)}</div>`;
+  if (state.stale) return `<div class="warnbar">Showing cached data — the last refresh from Google failed.
+    ${state.refreshError ? esc(state.refreshError) : ''}</div>`;
+  return '';
+}
+
+function detailView() {
+  const c = state.detailData;
+  if (state.detailLoading && !c) {
+    return `<button class="back" data-act="back">← Clients</button>
+      <div class="sk" style="height:34px;width:160px;margin-bottom:14px"></div>
+      <div class="sk" style="height:220px"></div>`;
+  }
+  if (!c) return `<button class="back" data-act="back">← Clients</button>
+    <div class="empty"><h4>Couldn't load that client</h4><p>${esc(state.error || 'Try again.')}</p></div>`;
+
+  const p = c.protocol || {};
+  const rows = (c.weeks || []).filter((w) => w.weekOf);
+
+  return `
+    <button class="back" data-act="back">← Clients</button>
+    <div class="top">
+      <div>
+        <div class="eyebrow">${esc(p.checkInDay || 'No check-in day')}${p.weeksOut ? ` · ${esc(p.weeksOut)} weeks out` : ''}</div>
+        <h1>${esc(c.name)} ${c.phase ? `<span class="tag ${phaseClass(c.phase)}" style="vertical-align:middle;margin-left:4px">${esc(c.phase)}</span>` : ''}</h1>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="glass" data-act="refreshOne">Refresh</button>
+        <a class="glass" href="${esc(c.url)}" target="_blank" rel="noopener">
+          Open sheet
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="n">${fmt(c.currentAvg, 2)}<small>lb · 7-day avg</small></div>
+      ${deltaHTML(c, true)}
+    </div>
+
+    <div class="panel pad0">${weekChart(c)}</div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">Last wk avg</div><div class="v">${fmt(c.lastWeek?.avg, 2)}</div></div>
+      <div class="stat"><div class="k">Change</div><div class="v">${fmtSigned(c.delta, 2)}<small> lb</small></div></div>
+      <div class="stat"><div class="k">Weigh-ins</div><div class="v">${c.loggedDays ?? 0}<small>/${c.dueDays ?? 0}</small></div></div>
+      <div class="stat"><div class="k">Steps avg</div><div class="v">${fmtInt(c.stepAvg)}</div></div>
+      <div class="stat"><div class="k">Cardio</div><div class="v">${c.cardioDone ?? 0}<small>/${c.dueDays ?? 0}</small></div></div>
+    </div>
+
+    ${c.lastWeek?.notes ? `<h2>Last check-in note</h2>
+      <div class="panel"><div class="note">${esc(c.lastWeek.notes)}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-3);margin-top:8px">
+        WEEK OF ${esc(c.lastWeek.weekOf)}</div></div>` : ''}
+
+    ${trendChart(c.weeks || [])}
+
+    <h2>Protocol</h2>
+    <div class="panel"><dl class="kv">
+      <dt>Check-in</dt><dd>${esc(p.checkInDay || '—')}</dd>
+      <dt>Water</dt><dd>${esc(p.water || '—')}</dd>
+      <dt>Baseline diet</dt><dd>${esc(p.diet || '—')}</dd>
+      <dt>Free meal</dt><dd>${esc(p.freeMeal || '—')}</dd>
+      ${p.showDay ? `<dt>Show day</dt><dd>${esc(p.showDay)}</dd>` : ''}
+      ${p.weeksOut ? `<dt>Weeks out</dt><dd>${esc(p.weeksOut)}</dd>` : ''}
+    </dl></div>
+
+    <h2>This week <em>day by day</em></h2>
+    <div class="panel pad0"><table>
+      <thead><tr><th>Day</th><th>Date</th><th style="text-align:right">Weight</th>
+        <th style="text-align:right">Steps</th><th style="text-align:right">Cardio</th></tr></thead>
+      <tbody>${(c.days || []).map((d) => `
+        <tr${d.day === todayName ? ' style="background:var(--cool-dim)"' : ''}>
+          <td style="font-weight:500">${esc(d.day)}</td>
+          <td class="num" style="color:var(--fg-3)">${esc(d.date || '—')}</td>
+          <td class="num" style="text-align:right;${d.weight == null && d.due ? 'color:var(--stop)' : ''}">
+            ${d.weight != null ? fmt(d.weight, 2) : (d.due ? 'missed' : '—')}</td>
+          <td class="num" style="text-align:right;color:var(--fg-2)">${d.steps != null ? fmtInt(d.steps) : '—'}</td>
+          <td class="num" style="text-align:right;color:var(--fg-2)">${d.cardio === true ? '✓' : d.cardio === false ? '·' : '—'}</td>
+        </tr>`).join('')}</tbody></table></div>
+
+    ${rows.length ? `<h2>Timeline <em>${rows.length} weeks</em></h2>
+      <div class="panel pad0"><table>
+        <thead><tr><th>Week</th><th>Phase</th><th style="text-align:right">Avg</th><th>Coach notes</th></tr></thead>
+        <tbody>${rows.map((w, i) => {
+          const prev = rows[i + 1];
+          const d = (w.avg != null && prev?.avg != null) ? w.avg - prev.avg : null;
+          return `<tr>
+            <td class="num" style="white-space:nowrap">${esc(w.weekOf)}</td>
+            <td>${w.phase ? `<span class="tag ${phaseClass(w.phase)}">${esc(w.phase)}</span>` : '—'}</td>
+            <td class="num" style="text-align:right">${fmt(w.avg, 2)}
+              ${d != null ? `<div style="font-size:10px;color:var(--fg-3)">${fmtSigned(d, 2)}</div>` : ''}</td>
+            <td class="note">${esc(w.notes || '—')}</td></tr>`;
+        }).join('')}</tbody></table></div>` : ''}
+
+    <div class="foot">Read from the sheet's “${esc(c.tab || '')}” tab · updated ${ago(state.updatedAt)}</div>`;
+}
+
+/* ------------------------------------------------------------- render --- */
+
+function render() {
+  renderNav();
+  $('#whoCount').textContent = state.loading ? 'Loading…' : `${state.clients.length} clients`;
+  $('#whoAge').textContent = state.updatedAt ? `updated ${ago(state.updatedAt)}` : '';
+
+  const view = $('#view');
+  const keepFocus = document.activeElement?.id === 'q';
+  const caret = keepFocus ? [$('#q').selectionStart, $('#q').selectionEnd] : null;
+
+  view.innerHTML = state.detail
+    ? detailView()
+    : state.tab === 'today' ? todayView()
+    : state.tab === 'prep' ? prepView()
+    : state.tab === 'settings' ? settingsView()
+    : rosterView();
+
+  if (keepFocus && $('#q')) { $('#q').focus(); $('#q').setSelectionRange(caret[0], caret[1]); }
+  if (state.detail && state.detailData) wireChart();
+  if (!state.detail) view.scrollTop = 0;
+}
+
+/** Crosshair + tooltip on the week chart, driven by pointer or touch. */
+function wireChart() {
+  const svg = $('#wk'), tip = $('#wkTip');
+  if (!svg || !tip) return;
+  const c = state.detailData;
+  let timer;
+  const hide = () => { tip.style.opacity = '0'; };
+
+  svg.querySelectorAll('rect[data-i]').forEach((r) => {
+    const show = (ev) => {
+      // On touch there is no pointerleave, so the tooltip would sit there
+      // forever — including right after the tap that opened this client.
+      clearTimeout(timer);
+      timer = setTimeout(hide, 2600);
+      const d = c.days[Number(r.dataset.i)];
+      if (!d) return;
+      const box = svg.getBoundingClientRect();
+      const px = (ev.touches?.[0]?.clientX ?? ev.clientX) - box.left;
+      tip.style.left = `${Math.max(46, Math.min(box.width - 46, px))}px`;
+      tip.style.top = `${box.height * 0.42}px`;
+      tip.innerHTML = `<b>${esc(d.day)}</b> ${esc(d.date || '')}<br>`
+        + (d.weight != null ? `<b>${d.weight}</b> lb` : (d.due ? 'no weigh-in' : 'upcoming'))
+        + (d.steps != null ? `<br>${fmtInt(d.steps)} steps` : '');
+      tip.style.opacity = '1';
+    };
+    r.addEventListener('pointerenter', show);
+    r.addEventListener('pointermove', show);
+    r.addEventListener('pointerdown', show);
+    r.addEventListener('pointerleave', hide);
+  });
+  svg.addEventListener('pointerleave', hide);
+}
+
+/* ------------------------------------------------------------- events --- */
+
+document.addEventListener('click', (e) => {
+  const tabBtn = e.target.closest('[data-tab]');
+  if (tabBtn) {
+    state.tab = tabBtn.dataset.tab;
+    state.detail = null; state.detailData = null;
+    history.replaceState({}, '', '#' + state.tab);
+    render();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  const sortBtn = e.target.closest('[data-sort]');
+  if (sortBtn) { state.sort = sortBtn.dataset.sort; render(); return; }
+
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'refresh') { loadRoster(true); return; }
+  if (act === 'clearq') { state.query = ''; render(); return; }
+  if (act === 'back') {
+    state.detail = null; state.detailData = null;
+    history.replaceState({}, '', '#' + state.tab);
+    render(); window.scrollTo(0, 0); return;
+  }
+  if (act === 'refreshOne') { loadClient(state.detail, true); return; }
+  if (act === 'signout') {
+    fetch('/api/auth', { method: 'DELETE', credentials: 'same-origin' }).finally(showGate);
+    return;
+  }
+
+  const card = e.target.closest('[data-id]');
+  if (card) {
+    state.detail = card.dataset.id;
+    state.detailData = state.clients.find((c) => c.id === state.detail) || null;
+    history.replaceState({}, '', '#c/' + state.detail);
+    render(); window.scrollTo(0, 0);
+    loadClient(state.detail);
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q') { state.query = e.target.value; render(); }
+});
+
+// Escape backs out of a client; "/" jumps to search.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.detail) {
+    state.detail = null; state.detailData = null; render();
+  }
+  if (e.key === '/' && !state.detail && document.activeElement?.id !== 'q') {
+    e.preventDefault(); $('#q')?.focus();
+  }
+});
+
+/* --------------------------------------------------------------- boot --- */
+
+(async function boot() {
+  const hash = location.hash.slice(1);
+  if (['today', 'prep', 'settings'].includes(hash)) state.tab = hash;
+
+  try {
+    const s = await api('/api/session');
+    if (!s.authed) { showGate(); return; }
+  } catch { showGate(); return; }
+
+  showApp();
+  await loadRoster();
+
+  if (hash.startsWith('c/')) {
+    const id = hash.slice(2);
+    if (state.clients.some((c) => c.id === id)) {
+      state.detail = id;
+      state.detailData = state.clients.find((c) => c.id === id);
+      render();
+      loadClient(id);
+    }
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
