@@ -1,12 +1,20 @@
 // Local dev server: serves the app with synthetic client data, so the UI can
-// be worked on without Google credentials or a Netlify build.
+// be worked on without Google credentials or a deploy.
 //
 //   node dev/server.mjs   ->   http://localhost:8787   (passcode: dev)
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from '../netlify/functions/_sheet.js';
+import { parse } from '../lib/sheet.js';
+import authHandler from '../api/auth.js';
+import sessionHandler from '../api/session.js';
+import { requireAuth } from '../lib/auth.js';
+
+// Real auth, mocked Google. The passcode path is the easiest thing to get
+// subtly wrong, so dev runs the same code production does.
+process.env.DIALED_PASSCODE ||= 'dev';
+process.env.DIALED_SESSION_SECRET ||= 'dev-only-not-a-secret';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url)) + '/..';
 const PORT = process.env.PORT || 8787;
@@ -135,26 +143,36 @@ const send = (res, code, body, headers = {}) => {
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
 };
 
-const authed = (req) => /dialed_session=ok/.test(req.headers.cookie || '');
+/** Adapt a Node request into the web Request the real handlers expect. */
+async function toRequest(req) {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  const body = chunks.length ? Buffer.concat(chunks) : undefined;
+  return new Request(`http://localhost${req.url}`, {
+    method: req.method,
+    headers: Object.entries(req.headers).filter(([, v]) => v != null),
+    body: ['GET', 'HEAD'].includes(req.method) ? undefined : body,
+  });
+}
+
+async function relay(res, response) {
+  const headers = {};
+  response.headers.forEach((v, k) => { headers[k] = v; });
+  // Secure cookies never come back over plain http://localhost.
+  if (headers['set-cookie']) headers['set-cookie'] = headers['set-cookie'].replace(/;\s*Secure/gi, '');
+  res.writeHead(response.status, headers);
+  res.end(await response.text());
+}
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
 
-  if (url.pathname === '/api/session') return send(res, 200, { authed: authed(req) });
-
-  if (url.pathname === '/api/auth') {
-    if (req.method === 'DELETE') {
-      return send(res, 200, { ok: true }, { 'Set-Cookie': 'dialed_session=; Path=/; Max-Age=0' });
-    }
-    let body = '';
-    for await (const chunk of req) body += chunk;
-    const { passcode } = JSON.parse(body || '{}');
-    if (passcode !== (process.env.DIALED_PASSCODE || 'dev')) return send(res, 401, { error: 'Wrong passcode' });
-    return send(res, 200, { ok: true }, { 'Set-Cookie': 'dialed_session=ok; Path=/; Max-Age=86400' });
-  }
+  if (url.pathname === '/api/auth') return relay(res, await authHandler(await toRequest(req)));
+  if (url.pathname === '/api/session') return relay(res, await sessionHandler(await toRequest(req)));
 
   if (url.pathname.startsWith('/api/')) {
-    if (!authed(req)) return send(res, 401, { error: 'unauthorized' });
+    const denied = await requireAuth(await toRequest(req));
+    if (denied) return relay(res, denied);
     if (url.pathname === '/api/roster') {
       return send(res, 200, { clients: [...CLIENTS, badSheet], updatedAt: Date.now(), stale: false });
     }

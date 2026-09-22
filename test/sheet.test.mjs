@@ -5,7 +5,7 @@
 //   node --test test/
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parse, clientName, num, round } from '../netlify/functions/_sheet.js';
+import { parse, clientName, num, round } from '../lib/sheet.js';
 
 /** Build a rows array (columns B..R) from a {cellRef: value} map. */
 function grid(fromRow, toRow, cells) {

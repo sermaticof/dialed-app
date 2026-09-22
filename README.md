@@ -87,7 +87,10 @@ A phase that appears in neither stays neutral rather than being guessed at.
 2. **Share the sheets with it.** Share the parent Drive folder (or each sheet)
    with the service account's `client_email` as a **Viewer**. It cannot see
    anything you don't share.
-3. **Set the environment variables** in Netlify (see `.env.example`):
+3. **Deploy to Vercel.** Import the repo, framework preset **Other**, root
+   directory the repo root. There is no build step: `index.html` is served
+   statically and everything in `api/` becomes a function.
+4. **Set the environment variables** (see `.env.example`):
 
    | Variable | Required | What |
    |---|---|---|
@@ -96,14 +99,21 @@ A phase that appears in neither stays neutral rather than being guessed at.
    | `DIALED_SESSION_SECRET` | yes | random string signing the session cookie; rotate to sign everyone out |
    | `ACTIVE_FOLDER_ID` | no | restrict discovery to one folder |
    | `SHEET_NAME_MATCH` | no | naming convention, default `TBD Guide` |
+   | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | no | shared cache, see below |
 
-4. **Deploy to Netlify.** `publish = "."`, functions in `netlify/functions`.
+### Plan
+
+Vercel's **Hobby plan is non-commercial only**, and a client dashboard for a
+coaching business is commercial use, so this needs **Pro**. Ghost Setter's
+dashboard is a static page with no functions; this one runs real serverless
+functions against Google, which is the other reason Hobby isn't the right home
+for it.
 
 ### Access
 
 The whole app is behind one shared passcode — anyone who has it can read every
-client's data, so treat it like a password. This repository is public, so no
-credentials belong in it; everything sensitive is an environment variable.
+client's data, so treat it like a password. Keep the repository private, and
+keep credentials in environment variables, never in the repo.
 
 ## Local development
 
@@ -119,7 +129,7 @@ worked on without Google credentials. No real client data is in this repo.
 ## Caching
 
 Reading ~27 spreadsheets takes seconds, which is far too slow for every page
-load on a phone, so results go in Netlify Blobs:
+load on a phone, so results are cached:
 
 | Key | TTL |
 |---|---|
@@ -128,6 +138,32 @@ load on a phone, so results go in Netlify Blobs:
 | the client list from Drive | 1 hour |
 | resolved tab name per sheet | until it stops matching |
 
+`lib/cache.js` picks its backend from the environment:
+
+1. **Upstash Redis** if `UPSTASH_REDIS_REST_URL` and `..._TOKEN` are set. Add
+   "Upstash" from the Vercel Marketplace and it injects both. Shared across
+   every function instance, so a cold start is still instant.
+2. **In-memory** otherwise — no setup, but per-instance, so a cold start pays
+   the full multi-second read. Fine to start with; add Upstash if that bites.
+
+Not Vercel Blob: its objects are publicly readable by URL, and this cache holds
+client bodyweight data.
+
 Refresh forces a re-read. If a refresh fails, the last good data is served with
 a "showing cached data" banner rather than an error screen, and one unreadable
 sheet shows as a single bad card instead of blanking the roster.
+
+## Layout
+
+```
+index.html          the whole front end, no build step
+api/                Vercel functions — auth, session, roster, client
+lib/                the actual logic, shared by api/ and the dev server
+  google.js         service-account JWT + Drive/Sheets calls
+  sheet.js          the sheet parser
+  data.js           tab resolution, roster and client assembly
+  cache.js          pluggable TTL cache
+  auth.js           passcode -> signed cookie
+dev/server.mjs      local server: real auth, synthetic client data
+test/               parser and auth-route tests
+```

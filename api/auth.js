@@ -1,7 +1,7 @@
 // POST { passcode } -> sets the session cookie.  DELETE -> signs out.
-import { json, makeCookie, clearCookie, safeEqual, COOKIE } from './_lib.js';
+import { json, makeCookie, clearCookie, safeEqual } from '../lib/auth.js';
 
-export default async (req) => {
+export default async function handler(req) {
   if (req.method === 'DELETE') {
     return json({ ok: true }, 200, { 'Set-Cookie': clearCookie() });
   }
@@ -26,6 +26,4 @@ export default async (req) => {
   }
 
   return json({ ok: true }, 200, { 'Set-Cookie': await makeCookie() });
-};
-
-export const config = { path: '/api/auth' };
+}
